@@ -1,0 +1,648 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+using System.Threading.Tasks;
+
+namespace TaskManagement
+{
+    class Task
+    {
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public DateTime DueDate { get; set; }
+        public string Status { get; set; }
+        public string AssignedTo { get; set; }
+        public int Completeness { get; set; }
+
+        public Task(string title, string description, DateTime dueDate, string status = "To-Do", string assigned = null, int completeness=0)
+        {
+            Title = title;
+            Description = description;
+            DueDate = dueDate;
+            Status = status;
+            AssignedTo = assigned;
+            Completeness = completeness;
+        }
+
+        public void DisplayTaskInfo()
+        {
+            Console.WriteLine($"Title: {Title}");
+            Console.WriteLine($"Description: {Description}");
+            Console.WriteLine($"Due Date: {DueDate}");
+            Console.WriteLine($"Status: {Status}");
+            Console.WriteLine($"Assigned To: {AssignedTo}");
+            Console.WriteLine($"Completeness : {Completeness}%");
+        }
+    }
+
+    class Manager
+    {
+        private string username;
+        private string password;
+        private static Application app;
+
+        public void SetInfo(string user, string pass)
+        {
+            username = user;
+            password = pass;
+        }
+
+        public string GetUsername()
+        {
+            return username;
+        }
+
+        public string GetPassword()
+        {
+            return password;
+        }
+
+        public void CreateTask()
+        {
+            string title, description;
+
+            Console.WriteLine("Enter task title:");
+            title = Console.ReadLine();
+
+            Console.WriteLine("Enter task description:");
+            description = Console.ReadLine();
+
+            Console.WriteLine("Enter task dueDate:");
+            DateTime dueDate;
+            while (!DateTime.TryParse(Console.ReadLine(), out dueDate))
+            {
+                Console.WriteLine("Invalid input. Please enter a valid due date:");
+            }
+
+            Task newTask = new Task(title, description, dueDate);
+            app.tasks.Add(newTask);
+            Console.WriteLine("Task created successfully.");
+        }
+
+
+
+        public static void AssignTask()
+        {
+            Console.WriteLine("Available tasks:");
+            for (int i = 0; i < app.tasks.Count; i++)
+            {
+                if (app.tasks[i].AssignedTo == null)
+                Console.WriteLine($"{i + 1}. {app.tasks[i].Title}");
+            }
+
+            Console.WriteLine("Enter the number of the task to assign:");
+            int taskNumber;
+            while (!int.TryParse(Console.ReadLine(), out taskNumber) || taskNumber < 1 || taskNumber > app.tasks.Count)
+            {
+                Console.WriteLine("Invalid input. Please enter a valid task number:");
+            }
+
+            Console.WriteLine("which user do you want to assigne it to:");
+            for (int i = 0; i < app.users.Count; i++)
+            {
+                    Console.WriteLine($"{i + 1}. {app.users[i].GetUsername()}");
+            }
+
+            Console.WriteLine("Enter the number of the user you want to assign the task to:");
+            int userNumber;
+            while (!int.TryParse(Console.ReadLine(), out userNumber) || userNumber < 1 || userNumber > app.users.Count)
+            {
+                Console.WriteLine("Invalid input. Please enter a valid user number:");
+            }
+
+            string assigneeUsername = app.users[userNumber-1].GetUsername();
+
+            Task selectedTask = app.tasks[taskNumber - 1];
+            selectedTask.AssignedTo = assigneeUsername;
+            Console.WriteLine($"Task '{selectedTask.Title}' assigned to '{assigneeUsername}' successfully.");
+        }
+
+        public static void CreateNewTeam()
+        {
+            Console.WriteLine("Enter team name:");
+            string teamName = Console.ReadLine();
+
+            Console.WriteLine("Enter team ID:");
+            int teamId;
+            while (!int.TryParse(Console.ReadLine(), out teamId))
+            {
+                Console.WriteLine("Invalid input. Please enter a valid team ID:");
+            }
+
+            Console.WriteLine("List of unassigned users:");
+            int index = 1;
+            foreach (var user in app.users)
+            {
+                if (string.IsNullOrEmpty(user.teamName))
+                {
+                    Console.WriteLine($"{index}. {user.GetUsername()}");
+                    
+                }
+                index++;
+            }
+
+            
+            Console.WriteLine("Enter the number of users you want to assign to the team:");
+            int userCount;
+            while (!int.TryParse(Console.ReadLine(), out userCount) || userCount < 1 || userCount > app.users.Count)
+            {
+                Console.WriteLine("Invalid input. Please enter a valid user count:");
+            }
+
+            for (int i = 0; i < userCount; i++)
+            {
+                Console.WriteLine($"Enter the number of user {i + 1} to assign to the team:");
+                int userNumber;
+                while (!int.TryParse(Console.ReadLine(), out userNumber) || userNumber < 1 || userNumber > app.users.Count)
+                {
+                    Console.WriteLine("Invalid input. Please enter a valid user number:");
+                }
+
+                User selectedUser = app.users[userNumber - 1];
+                selectedUser.teamName = teamName;
+            }
+
+            Console.WriteLine("Users assigned to the team successfully.");
+        }
+
+        public static void GenerateTaskReport()
+        {
+            Console.WriteLine("Tasks Report:");
+            foreach (var task in app.tasks)
+            {
+                task.DisplayTaskInfo();
+
+                
+                if (task.DueDate < DateTime.Now && task.Status != "Done")
+                {
+                    Console.WriteLine("This task is delayed!");
+                }
+
+                Console.WriteLine("===========================");
+            }
+        }
+        public void WelcomeManager(ref Application application)
+        {
+
+
+            app = application; 
+
+
+            Console.WriteLine("[1] Create task");
+            Console.WriteLine("[2] Create team and assigne user");
+            Console.WriteLine("[3] assigne task to a team member");
+            Console.WriteLine("[4] Generate task report");
+            Console.WriteLine("[5] Sign out");
+
+            Console.WriteLine("Enter your choice:");
+            string choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    CreateTask(); 
+                    WelcomeManager(ref app);
+                    break;
+                case "2":
+                    CreateNewTeam(); 
+                    WelcomeManager(ref app);
+                    break;
+                case "3":
+                    AssignTask();
+                    WelcomeManager(ref app);
+                    break;
+                case "4":
+                    GenerateTaskReport();
+                    WelcomeManager(ref app);
+                    break;
+                case "5":
+                    app.SaveDataToFile();
+                    app.Welcome();
+                    break;
+                default:
+                    Console.WriteLine("You have entered a wrong number, try again");
+                    WelcomeManager(ref app);
+                    break;
+            }
+
+
+        }
+
+    }
+
+    class User
+    {
+        private string username;
+        private string password;
+        private static Application app;
+        public string teamName;
+        public int teamId ;
+
+        public void SetInfo(string user, string pass)
+        {
+            username = user;
+            password = pass;
+        }
+
+        public string GetUsername()
+        {
+            return username;
+        }
+
+        public string GetPassword()
+        {
+            return password;
+        }
+
+        
+
+        public void TrackTaskProgress(List<Task> tasks)
+        {
+            Console.WriteLine($"Tasks assigned to {username}:");
+            int index = 1;
+            foreach (var task in tasks)
+            {
+                if (task.AssignedTo == username)
+                {
+                    Console.WriteLine($"{index}. {task.Title} - {task.Status}");
+                    index++;
+                }
+            }
+
+            Console.WriteLine("Enter the number of the task to update progress:");
+            int taskNumber;
+            while (!int.TryParse(Console.ReadLine(), out taskNumber) || taskNumber < 1 || taskNumber > index - 1)
+            {
+                Console.WriteLine("Invalid input. Please enter a valid task number:");
+            }
+
+            Task selectedTask = tasks[taskNumber - 1];
+
+            Console.WriteLine("Enter dated text description for the new activity:");
+            string progressDescription = Console.ReadLine();
+
+            selectedTask.Description += $"{DateTime.Now}: {progressDescription}\n";
+
+            Console.WriteLine($"Task '{selectedTask.Title}' progress updated successfully.");
+        }
+
+        public static void ViewTaskDetails()
+        {
+            if (app.tasks.Count == 0)
+            {
+                Console.WriteLine("No tasks available.");
+                return;
+            }
+            foreach (var task in app.tasks)
+            {
+                task.DisplayTaskInfo();
+            }
+        }
+
+        public void CreateTask()
+        {
+            string title, description;
+
+            Console.WriteLine("Enter task title:");
+            title = Console.ReadLine();
+
+            Console.WriteLine("Enter task description:");
+            description = Console.ReadLine();
+
+            Console.WriteLine("Enter task dueDate'yyyy-mm-dd':");
+            DateTime dueDate;
+            while (!DateTime.TryParse(Console.ReadLine(), out dueDate))
+            {
+                Console.WriteLine("Invalid input. Please enter a valid due date:");
+            }
+
+            Task newTask = new Task(title, description, dueDate);
+            app.tasks.Add(newTask);
+            Console.WriteLine("Task created successfully.");
+
+
+        }
+
+
+        public void WelcomeUser(ref Application application)
+        {
+            app = application; 
+
+            
+            Console.WriteLine("[1] Track task progress (Update task)");
+            Console.WriteLine("[2] View task details");
+            Console.WriteLine("[3] Create task");
+            Console.WriteLine("[4] Sign out");
+
+            Console.WriteLine("Enter your choice:");
+            string choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    Console.Clear();
+                    TrackTaskProgress(app.tasks);
+                    WelcomeUser(ref app);
+                    break;
+                case "2":
+                    Console.Clear();
+                    if (app != null && app.tasks != null)
+                    {
+                        ViewTaskDetails();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Application or tasks not properly initialized.");
+                    }
+                    WelcomeUser(ref app);
+                    break;
+                case "3":
+                    CreateTask(); 
+                    WelcomeUser(ref app);
+                    break;
+                case "4":
+                    app.SaveDataToFile();
+                    app.Welcome();
+                    break;
+                default:
+                    Console.WriteLine("You have entered a wrong number, try again");
+                    WelcomeUser(ref app);
+                    break;
+            }
+        }
+    }
+
+    class Application
+    {
+        public List<Task> tasks = new List<Task>();
+        private static List<Manager> managers = new List<Manager>();
+        public List<User> users = new List<User>();
+        private static Application app = new Application();
+
+
+
+        public void SaveTasksToFile(List<Task> tasks)
+        {
+            using (StreamWriter writer = new StreamWriter("tasks.txt"))
+            {
+                foreach (var task in tasks)
+                {
+                    writer.WriteLine($"{task.Title},{task.Description},{task.DueDate},{task.Status},{task.AssignedTo},{task.Completeness}");
+                }
+            }
+        }
+
+        public List<Task> LoadTasksFromFile()
+        {
+            List<Task> tasks = new List<Task>();
+
+            if (File.Exists("tasks.txt"))
+            {
+                using (StreamReader reader = new StreamReader("tasks.txt"))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        string[] taskData = reader.ReadLine().Split(',');
+                        string title = taskData[0];
+                        string description = taskData[1];
+                        DateTime dueDate = DateTime.Parse(taskData[2]);
+                        string status = taskData[3];
+                        string assignedTo = taskData[4];
+                        int completeness = int.Parse(taskData[5]);
+
+                        Task task = new Task(title, description, dueDate, status, assignedTo, completeness);
+                        tasks.Add(task);
+                    }
+                }
+            }
+
+            return tasks;
+        }
+
+
+        public void SaveManagersToFile(List<Manager> managers)
+        {
+            using (StreamWriter writer = new StreamWriter("managers.txt"))
+            {
+                foreach (var manager in managers)
+                {
+                    writer.WriteLine($"{manager.GetUsername()},{manager.GetPassword()}");
+                }
+            }
+        }
+
+        public List<Manager> LoadManagersFromFile()
+        {
+            List<Manager> managers = new List<Manager>();
+
+            if (File.Exists("managers.txt"))
+            {
+                using (StreamReader reader = new StreamReader("managers.txt"))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        string[] managerData = reader.ReadLine().Split(',');
+                        string username = managerData[0];
+                        string password = managerData[1];
+
+                        Manager manager = new Manager();
+                        manager.SetInfo(username, password);
+                        managers.Add(manager);
+                    }
+                }
+            }
+
+            return managers;
+        }
+
+
+
+        public void SaveUsersToFile(List<User> users)
+        {
+            using (StreamWriter writer = new StreamWriter("users.txt"))
+            {
+                foreach (var user in users)
+                {
+                    writer.WriteLine($"{user.GetUsername()},{user.GetPassword()},{user.teamName},{user.teamId}");
+                }
+            }
+        }
+
+        public List<User> LoadUsersFromFile()
+        {
+            List<User> users = new List<User>();
+
+            if (File.Exists("users.txt"))
+            {
+                using (StreamReader reader = new StreamReader("users.txt"))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        string[] userData = reader.ReadLine().Split(',');
+                        string username = userData[0];
+                        string password = userData[1];
+                        string teamName = userData[2];
+                        int teamId = int.Parse(userData[3]);
+
+                        User user = new User();
+                        user.SetInfo(username, password);
+                        user.teamName = teamName;
+                        user.teamId = teamId;
+                        users.Add(user);
+                    }
+                }
+            }
+
+            return users;
+        }
+
+        public void SaveDataToFile()
+        {
+            app.SaveTasksToFile(tasks);
+            app.SaveManagersToFile(managers);
+            app.SaveUsersToFile(users);
+        }
+
+        public void LoadDataFromFile()
+        {
+            tasks = app.LoadTasksFromFile();
+            managers = app.LoadManagersFromFile();
+            users = app.LoadUsersFromFile();
+        }
+
+
+        public void Welcome()
+        {
+            Console.WriteLine("[1] Sign up as manager");
+            Console.WriteLine("[2] Sign up as user");
+            Console.WriteLine("[3] Sign in as manager");
+            Console.WriteLine("[4] Sign in as user");
+            Console.WriteLine("[5] Exit");
+
+            Console.WriteLine("Enter your choice:");
+            string choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    SignUpManager();
+                    Welcome();
+                    break;
+                case "2":
+                    SignUpUser();
+                    Welcome();
+                    break;
+                case "3":
+                    SignInManager();
+                    break;
+                case "4":
+                    SignInUser();
+                    break;
+                case "5":
+                    app.SaveDataToFile();
+                    ShutDown();
+                    break;
+                default:
+                    Console.WriteLine("You have entered a wrong number, try again");
+                    Welcome();
+                    break;
+            }
+        }
+
+        public static string[] GetInfo()
+        {
+            string[] info = new string[2];
+
+            Console.WriteLine("Enter username:");
+            info[0] = Console.ReadLine();
+
+            Console.WriteLine("Enter password:");
+            info[1] = Console.ReadLine();
+
+            return info;
+        }
+
+        private static void SignUpManager()
+        {
+            string[] info = GetInfo();
+            Manager manager = new Manager();
+            manager.SetInfo(info[0], info[1]);
+            managers.Add(manager);
+        }
+
+        private static void SignUpUser()
+        {
+            string[] info = GetInfo();
+            User user = new User();
+            user.SetInfo(info[0], info[1]);
+            app.users.Add(user);
+        }
+
+        private static void SignInManager()
+        {
+            int i = 0;
+            string[] info = GetInfo();
+
+            foreach (var manager in managers)
+            {
+                string u = manager.GetUsername();
+                string p = manager.GetPassword();
+                if (info[0] == u && info[1] == p)
+                {
+                    manager.WelcomeManager(ref app);
+                    i++;
+                }
+            }
+            if (i == 0)
+            {
+                Console.WriteLine("Wrong username or password, try again");
+                SignInManager();
+            }
+        }
+
+        private static void SignInUser()
+        {
+            int i = 0;
+            string[] info = GetInfo();
+
+            foreach (var user in app.users)
+            {
+                string u = user.GetUsername();
+                string p = user.GetPassword();
+                if (info[0] == u && info[1] == p)
+                {
+                    user.WelcomeUser(ref app);
+                    i++;
+                }
+            }
+            if (i == 0)
+            {
+                Console.WriteLine("Wrong username or password, try again");
+                SignInUser();
+            }
+        }
+
+        private static void ShutDown()
+        {
+            Console.WriteLine("Exiting application...");
+            Environment.Exit(0);
+        }
+
+        static void Main()
+        {
+
+            app.LoadDataFromFile();
+
+            app.Welcome();
+
+            app.SaveDataToFile();
+
+            Console.WriteLine("All Tasks:");
+            foreach (var task in app.tasks)
+            {
+                task.DisplayTaskInfo();
+            }
+        }
+    }
+}
