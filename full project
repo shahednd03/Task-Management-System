@@ -106,7 +106,7 @@ namespace TaskManagement
 
             Console.WriteLine("Enter the number of the user you want to assign the task to:");
             int userNumber;
-            while (!int.TryParse(Console.ReadLine(), out userNumber) || userNumber < 1 || userNumber > app.users.Count)
+            while (!int.TryParse(Console.ReadLine(), out userNumber) || userNumber < 1 || userNumber > app.users.Count)//*************
             {
                 Console.WriteLine("Invalid input. Please enter a valid user number:");
             }
